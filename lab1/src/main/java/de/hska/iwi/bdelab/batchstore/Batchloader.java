@@ -8,12 +8,15 @@ import java.nio.file.Paths;
 import java.util.StringTokenizer;
 import java.util.stream.Stream;
 
-import de.hska.iwi.bdelab.schema.Data;
+import com.backtype.hadoop.pail.Pail;
+import de.hska.iwi.bdelab.schema.*;
+import manning.tap.DataPailStructure;
 import org.apache.hadoop.fs.FileSystem;
 
 public class Batchloader {
-
-    // ...
+    private long nonce = 0;
+    private Pail.TypedRecordOutputStream stream;
+    private DataPailStructure pailStructure = new DataPailStructure();
 
     private void readPageviewsAsStream() {
         try {
@@ -29,8 +32,6 @@ public class Batchloader {
     }
 
     private Data getDatafromString(String pageview) {
-        Data result = null;
-
         StringTokenizer tokenizer = new StringTokenizer(pageview);
         String ip = tokenizer.nextToken();
         String url = tokenizer.nextToken();
@@ -38,13 +39,25 @@ public class Batchloader {
 
         System.out.println(ip + " " + url + " " + time);
 
-        // ... create Data
+        UserID userId = new UserID();
+        userId.set_user_id(ip);
 
-        return result;
+        PageID pageId = new PageID();
+        pageId.set_url(url);
+
+        DataUnit du = new DataUnit();
+        du.set_pageView(new PageViewEdge(userId, pageId, nonce++));
+
+        return new Data(new Pedigree(Integer.parseInt(time)), du);
     }
 
     private void writeToPail(Data data) {
-        // ...
+        try {
+            stream.writeObject(data);
+        }
+        catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     private void importPageviews() {
@@ -64,13 +77,17 @@ public class Batchloader {
             String masterPath = FileUtils.prepareMasterFactsPath(false, LOCAL);
 
             // set up new pail and a stream
-            // ...
+            Pail p = Pail.create(fs, newPath, pailStructure);
+            stream = p.openWrite();
 
             // write facts to new pail
             readPageviewsAsStream();
 
+            stream.close();
+
             // set up master pail and absorb new pail
-            // ...
+            Pail mp = Pail.create(fs, masterPath, pailStructure);
+            mp.absorb(p);
 
         } catch (IOException e) {
             e.printStackTrace();
