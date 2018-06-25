@@ -245,7 +245,7 @@ public class BatchLoader {
                 }
             });
     }
-
+    private int nonce = 1;
     private Data getDatafromString(String pageview, boolean randomize) {
         StringTokenizer tokenizer = new StringTokenizer(pageview);
         String ip = tokenizer.nextToken();
@@ -274,7 +274,9 @@ public class BatchLoader {
         PageviewEdge pve1 = new PageviewEdge();
         pve1.set_user(uid1);
         pve1.set_page(pg1);
-        pve1.set_nonce(rand.nextInt());
+        if (nonce == Integer.MAX_VALUE)
+            nonce = 1;
+        pve1.set_nonce(nonce++);
 
         DataUnit du1 = new DataUnit();
         du1.set_pageview(pve1);
