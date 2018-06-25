@@ -37,8 +37,8 @@ public class FileUtils {
     private static final String FACT_BASE = "facts";
     private static final String RESULT_BASE = "results";
 
-    private static final String CORE_SITE = "/usr/local/lib/hadoop-2.7.0/etc/hadoop/core-site.xml";
-    private static final String HDFS_SITE = "/usr/local/lib/hadoop-2.7.0/etc/hadoop/hdfs-site.xml";
+    private static final String CORE_SITE = "/usr/local/opt/hadoop-2.7.6/etc/hadoop/core-site.xml";
+    private static final String HDFS_SITE = "/usr/local/opt/hadoop-2.7.6/etc/hadoop/hdfs-site.xml";
 
     private static final String HDFS_HOST = "193.196.105.68";
     private static final int HDFS_PORT = 9000;
