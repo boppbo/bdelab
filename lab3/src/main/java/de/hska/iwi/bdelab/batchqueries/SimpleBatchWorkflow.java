@@ -16,6 +16,8 @@ import de.hska.iwi.bdelab.schema2.Data;
 import de.hska.iwi.bdelab.schema2.DataUnit;
 
 import java.io.IOException;
+import java.net.MalformedURLException;
+import java.net.URL;
 
 public class SimpleBatchWorkflow extends QueryBase {
 
@@ -50,12 +52,11 @@ public class SimpleBatchWorkflow extends QueryBase {
 		Tap outTap = dataTap(
 		        FileUtils.prepareResultsPath("normalized-by-url", true, false));
 
-		Api.execute(outTap, new Subquery("?raw").predicate(masterDataset, "_", "?raw")
-
-		///////////////////////////////////////////////////////////////
-		// HIER FEHLT DIE QUERY LOGIK !
-		///////////////////////////////////////////////////////////////
-
+		Api.execute(outTap,
+				new Subquery("?data").predicate(masterDataset, "_", "?raw")
+						.predicate(new ExtractPageViewFields(), "?raw").out("?url", "?time")
+						.predicate(new NormalizeUrl(), "?url").out("?normedUrl")
+						.predicate(new ReplaceUrl(), "?normedUrl", "?raw").out("?data")
 		);
 	}
 
@@ -72,6 +73,30 @@ public class SimpleBatchWorkflow extends QueryBase {
 			}
 		}
 	}
+
+	public static class NormalizeUrl extends CascalogFunction {
+		public void operate(FlowProcess process, FunctionCall call) {
+			try {
+				URL url = new URL(call.getArguments().getString(0));
+				URL normalizedUrl = new URL(url.getProtocol(), url.getHost(), url.getPath());
+				call.getOutputCollector().add(new Tuple(normalizedUrl.toExternalForm()));
+			} catch (MalformedURLException e) {
+				e.printStackTrace();
+			}
+		}
+	}
+
+	public static class ReplaceUrl extends CascalogFunction {
+		public void operate(FlowProcess process, FunctionCall call) {
+			String normedUrl = call.getArguments().getString(0);
+			Data pageview = (Data) call.getArguments().getObject(1);
+
+			pageview.get_dataunit().get_pageview().get_page().set_url(normedUrl);
+
+			call.getOutputCollector().add(new Tuple(pageview));
+		}
+	}
+
 
 	@SuppressWarnings("serial")
 	public static class ToHour extends CascalogFunction {
